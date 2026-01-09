@@ -2,74 +2,106 @@
 
 A 5-phase hackathon project demonstrating the evolution of a Todo application from console app to cloud-native Kubernetes deployment.
 
-## Current Phase: I - Console Application
+## Current Phase: II - Full-Stack Web Application
 
-In-memory Python CLI todo app with Rich formatting.
+Full-stack todo app with Next.js frontend, FastAPI backend, and Neon Postgres database with authentication.
 
 ## Quick Start
 
+### Prerequisites
+- Node.js 20+
+- Python 3.13+
+- UV package manager
+- Neon Postgres database
+
+### Backend Setup
 ```bash
-# Prerequisites: Python 3.13+, UV package manager
-
-# Install dependencies
+cd backend
+cp .env.example .env  # Configure DATABASE_URL and BETTER_AUTH_SECRET
 uv sync
-
-# Run the application
-uv run python -m src.main
-
-# Run tests
-uv run pytest -v
-
-# Check coverage
-uv run pytest --cov=src --cov-report=term-missing
+uv run uvicorn main:app --reload --port 8000
 ```
+
+### Frontend Setup
+```bash
+cd frontend
+cp .env.example .env.local  # Configure DATABASE_URL and BETTER_AUTH_SECRET
+npm install
+npm run dev
+```
+
+### Docker Setup
+```bash
+# Set environment variables in .env file
+docker-compose up --build
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 15+, TypeScript, Tailwind CSS |
+| Backend | FastAPI, SQLModel, Python 3.13+ |
+| Database | Neon Serverless Postgres |
+| Auth | Better Auth (JWT sessions) |
+| Package Mgmt | UV (Python), npm (Node) |
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| Add Task | Create task with title and optional description |
-| View All | Display tasks in formatted table |
-| Update Task | Modify title/description by ID |
-| Delete Task | Remove task with confirmation |
-| Mark Complete | Toggle completion status |
+- User authentication (signup, login, logout)
+- Task CRUD operations
+- User isolation (users see only their tasks)
+- Mobile-responsive UI
+- Session-based authentication with JWT
 
 ## Project Structure
 
 ```
 hackathon-2/
-├── src/
-│   ├── __init__.py
-│   ├── main.py          # Entry point
-│   ├── models.py        # Task dataclass
-│   ├── storage.py       # In-memory CRUD
-│   └── cli.py           # Rich CLI interface
-├── tests/
-│   ├── test_models.py   # Model tests
-│   └── test_storage.py  # Storage tests
-├── specs/
-│   ├── constitution.md  # Project standards
-│   └── phase-1/         # Phase I specs
-├── pyproject.toml       # UV config
-├── CLAUDE.md            # AI instructions
+├── frontend/               # Next.js application
+│   ├── src/
+│   │   ├── app/           # App Router pages
+│   │   ├── components/    # React components
+│   │   └── lib/           # Utilities & API client
+│   └── Dockerfile
+├── backend/                # FastAPI application
+│   ├── routes/            # API endpoints
+│   ├── auth/              # Auth dependencies
+│   ├── models.py          # SQLModel models
+│   ├── database.py        # DB connection
+│   └── Dockerfile
+├── phase-1-console/        # Phase I code (preserved)
+├── specs/                  # Specifications
+├── docker-compose.yml
 └── README.md
 ```
 
-## Usage Example
+## API Endpoints
 
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| GET | `/api/tasks` | List user's tasks |
+| POST | `/api/tasks` | Create task |
+| GET | `/api/tasks/{id}` | Get task |
+| PUT | `/api/tasks/{id}` | Update task |
+| DELETE | `/api/tasks/{id}` | Delete task |
+| PATCH | `/api/tasks/{id}/complete` | Toggle completion |
+
+## Environment Variables
+
+### Backend (.env)
+```env
+DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require
+BETTER_AUTH_SECRET=your-secret-key
+CORS_ORIGINS=http://localhost:3000
 ```
-===== Todo App Menu =====
-1. Add Task
-2. View All Tasks
-3. Update Task
-4. Delete Task
-5. Mark Complete/Incomplete
-6. Exit
 
-Enter choice: 1
-Enter task title: Buy groceries
-Enter description (optional): Milk, eggs, bread
-Task created successfully! ID: a1b2c3d4...
+### Frontend (.env.local)
+```env
+DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require
+BETTER_AUTH_SECRET=your-secret-key
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ## Phase Roadmap
@@ -77,7 +109,7 @@ Task created successfully! ID: a1b2c3d4...
 | Phase | Description | Status |
 |-------|-------------|--------|
 | I | Console Application | **Complete** |
-| II | Full-Stack Web App | Pending |
+| II | Full-Stack Web App | **Complete** |
 | III | AI Chatbot Integration | Pending |
 | IV | Kubernetes Deployment | Pending |
 | V | Production Cloud | Pending |
@@ -86,7 +118,8 @@ Task created successfully! ID: a1b2c3d4...
 
 All development follows the [Project Constitution](specs/constitution.md).
 
+- TypeScript strict mode for frontend
 - Type hints on all Python code
-- Docstrings on all functions
-- 80%+ test coverage on business logic
-- Rich library for CLI formatting
+- SQLModel for ORM
+- Better Auth for authentication
+- User isolation on all task operations
