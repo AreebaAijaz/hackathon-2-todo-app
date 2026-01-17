@@ -17,10 +17,13 @@ if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # Create engine with connection pooling
+# Note: sslmode=require in URL handles SSL for Neon
 engine = create_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL debugging
     pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=300,  # Recycle connections after 5 minutes
+    pool_timeout=30,  # Wait up to 30s for connection
 )
 
 

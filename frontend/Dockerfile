@@ -16,6 +16,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build-time environment variables
+ARG DATABASE_URL
+ARG BETTER_AUTH_SECRET
+ARG NEXT_PUBLIC_API_URL
+
+ENV DATABASE_URL=$DATABASE_URL
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
