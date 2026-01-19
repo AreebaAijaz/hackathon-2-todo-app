@@ -1,6 +1,14 @@
 "use client";
 
-import { Task, CreateTaskInput, UpdateTaskInput } from "./types";
+import {
+  Task,
+  CreateTaskInput,
+  UpdateTaskInput,
+  ChatRequest,
+  ChatResponse,
+  Conversation,
+  ConversationDetail,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -72,6 +80,28 @@ class ApiClient {
   async toggleComplete(id: number): Promise<Task> {
     return this.request<Task>(`/api/tasks/${id}/complete`, {
       method: "PATCH",
+    });
+  }
+
+  // Chat endpoints
+  async sendMessage(data: ChatRequest): Promise<ChatResponse> {
+    return this.request<ChatResponse>("/api/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getConversations(): Promise<Conversation[]> {
+    return this.request<Conversation[]>("/api/conversations");
+  }
+
+  async getConversation(id: number): Promise<ConversationDetail> {
+    return this.request<ConversationDetail>(`/api/conversations/${id}`);
+  }
+
+  async deleteConversation(id: number): Promise<void> {
+    await this.request(`/api/conversations/${id}`, {
+      method: "DELETE",
     });
   }
 }

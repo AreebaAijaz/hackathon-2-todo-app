@@ -31,3 +31,38 @@ export interface User {
 export interface ApiError {
   detail: string;
 }
+
+// Chat types
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: number;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface ConversationDetail {
+  id: number;
+  title: string | null;
+  created_at: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatRequest {
+  message: string;
+  conversation_id?: number;
+}
+
+export interface ChatResponse {
+  response: string;
+  conversation_id: number;
+  message_id: number;
+  agent_used: string | null;
+}

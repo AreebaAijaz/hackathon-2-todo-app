@@ -8,9 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import create_db_and_tables
-from models import Task  # noqa: F401 - Import to register models
+from models import Task, Conversation, Message  # noqa: F401 - Import to register models
 from routes.auth import router as auth_router
 from routes.tasks import router as tasks_router
+from routes.chat import router as chat_router
 
 # Load environment variables
 load_dotenv()
@@ -29,8 +30,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Todo API",
-    description="Phase II: Full-Stack Todo Application with Authentication",
-    version="2.0.0",
+    description="Phase III: AI Chatbot with Multi-Agent Architecture",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -48,6 +49,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(tasks_router)
+app.include_router(chat_router)
 
 
 @app.get("/")
