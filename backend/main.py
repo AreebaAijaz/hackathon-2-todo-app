@@ -12,6 +12,8 @@ from models import Task, Conversation, Message  # noqa: F401 - Import to registe
 from routes.auth import router as auth_router
 from routes.tasks import router as tasks_router
 from routes.chat import router as chat_router
+from routes.chatkit import router as chatkit_router
+from routes.chatkit_session import router as chatkit_session_router
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +52,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(chat_router)
+app.include_router(chatkit_router)
+app.include_router(chatkit_session_router)
 
 
 @app.get("/")

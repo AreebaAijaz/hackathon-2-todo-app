@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@openai/chatkit-react": "^1.4.3",
     "@types/pg": "^8.16.0",
     "better-auth": "^1.4.10",
     "next": "16.1.1",

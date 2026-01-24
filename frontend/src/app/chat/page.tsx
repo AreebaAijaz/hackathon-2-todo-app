@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession, signOut } from "@/lib/auth-client";
-import ChatWindow from "@/components/ChatWindow";
+import ChatKitWindow from "@/components/ChatKitWindow";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -145,7 +145,7 @@ export default function ChatPage() {
 
       {/* Chat window - takes remaining height */}
       <div className="flex-1 overflow-hidden">
-        <ChatWindow />
+        <ChatKitWindow />
       </div>
     </div>
   );
