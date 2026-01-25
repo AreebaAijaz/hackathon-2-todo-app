@@ -1,0 +1,25 @@
+# Local Minikube values
+# Usage: helm install taskflow ./helm-chart -f ./helm-chart/values-local.yaml --set-file secrets.databaseUrl=./secrets/db-url.txt ...
+
+frontend:
+  image:
+    repository: modern-taskflow-frontend
+    tag: latest
+    pullPolicy: Never  # Use local images
+  service:
+    type: NodePort
+    nodePort: 30080
+
+backend:
+  image:
+    repository: modern-taskflow-backend
+    tag: latest
+    pullPolicy: Never  # Use local images
+  env:
+    CORS_ORIGINS: "http://localhost:30080,http://192.168.49.2:30080"
+
+# For local development, you can set secrets via --set flag:
+# helm install taskflow ./helm-chart -f ./helm-chart/values-local.yaml \
+#   --set secrets.databaseUrl="postgresql://..." \
+#   --set secrets.betterAuthSecret="your-secret" \
+#   --set secrets.openaiApiKey="sk-..."

@@ -1,0 +1,31 @@
+🎉 Modern TaskFlow has been deployed!
+
+{{- if eq .Values.frontend.service.type "NodePort" }}
+
+Access the application:
+  1. Get the Minikube IP:
+     minikube ip
+
+  2. Access the frontend at:
+     http://$(minikube ip):{{ .Values.frontend.service.nodePort }}
+
+  Or use minikube service:
+     minikube service {{ .Release.Name }}-{{ .Values.frontend.name }}
+
+{{- else }}
+
+Access the application by running:
+  kubectl port-forward svc/{{ .Release.Name }}-{{ .Values.frontend.name }} 3000:{{ .Values.frontend.service.port }}
+
+Then visit: http://localhost:3000
+
+{{- end }}
+
+Check pod status:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+View logs:
+  kubectl logs -l app.kubernetes.io/component=frontend -f
+  kubectl logs -l app.kubernetes.io/component=backend -f
+
+Happy task managing! ✅

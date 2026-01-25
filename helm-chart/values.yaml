@@ -1,0 +1,55 @@
+# Default values for modern-taskflow Helm chart
+
+# Frontend configuration
+frontend:
+  name: frontend
+  replicaCount: 1
+  image:
+    repository: modern-taskflow-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30080
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    NEXT_PUBLIC_API_URL: "http://backend:8000"
+
+# Backend configuration
+backend:
+  name: backend
+  replicaCount: 1
+  image:
+    repository: modern-taskflow-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    CORS_ORIGINS: "http://localhost:30080,http://frontend:3000"
+
+# ConfigMap values (non-sensitive)
+config:
+  nodeEnv: production
+  pythonEnv: production
+
+# Secrets (should be overridden in production)
+secrets:
+  databaseUrl: ""
+  betterAuthSecret: ""
+  openaiApiKey: ""

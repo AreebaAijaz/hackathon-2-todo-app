@@ -1,0 +1,14 @@
+apiVersion: v2
+name: modern-taskflow
+description: A Helm chart for Modern TaskFlow - Todo Application with AI Chatbot
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - todo
+  - taskflow
+  - fastapi
+  - nextjs
+  - ai-chatbot
+maintainers:
+  - name: Evolution of Todo Team
