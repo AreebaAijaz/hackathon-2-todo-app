@@ -7,6 +7,7 @@ Flow: ChatKit UI → This Backend → Your Logic/Tools → SSE Response → Chat
 """
 
 import json
+import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any, AsyncGenerator
 
@@ -21,6 +22,18 @@ from database import get_session
 from models import Conversation, Message
 
 router = APIRouter(prefix="/api", tags=["chatkit"])
+
+
+def _get_cors_headers(request: Request) -> dict:
+    """Build CORS headers based on the request origin."""
+    origin = request.headers.get("origin", "")
+    allowed = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+    if origin in allowed:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        }
+    return {}
 
 
 class ChatKitMessage(BaseModel):
@@ -202,6 +215,7 @@ async def chatkit_endpoint(
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
                 "X-Accel-Buffering": "no",
+                **_get_cors_headers(request),
             }
         )
 
@@ -223,8 +237,26 @@ async def chatkit_endpoint(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+            **_get_cors_headers(request),
         }
     )
+
+
+@router.options("/chatkit")
+async def chatkit_options(request: Request):
+    """Handle CORS preflight for chatkit endpoint."""
+    origin = request.headers.get("origin", "")
+    allowed = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+    headers = {
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "3600",
+    }
+    if origin in allowed:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    from fastapi.responses import Response
+    return Response(status_code=204, headers=headers)
 
 
 @router.get("/chatkit/health")
