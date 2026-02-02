@@ -6,5 +6,5 @@ export async function GET() {
     headers: await headers(),
   });
 
-  return Response.json({ session });
+  return Response.json(session);
 }

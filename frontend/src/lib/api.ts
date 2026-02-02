@@ -20,8 +20,7 @@ class ApiClient {
     });
     if (response.ok) {
       const data = await response.json();
-      // Better Auth returns { session: { session: { token }, user: {...} } }
-      return data.session?.session?.token || null;
+      return data.session?.token || null;
     }
     return null;
   }

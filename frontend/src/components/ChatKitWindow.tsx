@@ -45,7 +45,7 @@ export default function ChatKitWindow({ className = "" }: ChatKitWindowProps) {
       });
       if (response.ok) {
         const data = await response.json();
-        return data.session?.session?.token || null;
+        return data.session?.token || null;
       }
     } catch (e) {
       console.error("Failed to get auth token:", e);
