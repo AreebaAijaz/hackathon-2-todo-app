@@ -31,8 +31,9 @@ backend:
     tag: latest
     pullPolicy: IfNotPresent
   service:
-    type: ClusterIP
+    type: NodePort
     port: 8000
+    nodePort: 30081
   resources:
     limits:
       cpu: 500m
@@ -42,6 +43,63 @@ backend:
       memory: 128Mi
   env:
     CORS_ORIGINS: "http://localhost:30080,http://frontend:3000"
+
+# Notification service configuration
+notificationService:
+  name: notification-service
+  replicaCount: 1
+  image:
+    repository: notification-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Recurring task service configuration
+recurringService:
+  name: recurring-service
+  replicaCount: 1
+  image:
+    repository: recurring-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Audit service configuration
+auditService:
+  name: audit-service
+  replicaCount: 1
+  image:
+    repository: audit-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8003
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 # ConfigMap values (non-sensitive)
 config:

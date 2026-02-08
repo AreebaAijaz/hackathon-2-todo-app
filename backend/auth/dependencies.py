@@ -1,17 +1,28 @@
 """Authentication dependencies for FastAPI routes."""
 
+import logging
+import os
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session, select, text
 
 from database import get_session
 
+logger = logging.getLogger("auth")
+
 # HTTP Bearer token security scheme
 security = HTTPBearer(auto_error=False)
 
+# Trusted internal Dapr app IDs for service-to-service calls
+TRUSTED_DAPR_APP_IDS = {"recurring-service", "notification-service", "audit-service"}
+
+# Internal service user ID used for service-to-service task creation
+INTERNAL_SERVICE_USER_ID = os.getenv("INTERNAL_SERVICE_USER_ID", "")
+
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     session: Session = Depends(get_session),
 ) -> str:
@@ -27,6 +38,12 @@ async def get_current_user(
     Raises:
         HTTPException: If authentication fails.
     """
+    # Check for trusted Dapr service invocation (internal service-to-service calls)
+    # Dapr may forward the caller app ID under different header names
+    dapr_app_id = request.headers.get("dapr-app-id", "") or request.headers.get("dapr-caller-app-id", "")
+    if dapr_app_id in TRUSTED_DAPR_APP_IDS and INTERNAL_SERVICE_USER_ID:
+        return INTERNAL_SERVICE_USER_ID
+
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

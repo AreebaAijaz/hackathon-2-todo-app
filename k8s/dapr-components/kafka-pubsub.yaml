@@ -1,0 +1,19 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    - name: brokers
+      value: "redpanda.default.svc.cluster.local:9092"
+    - name: authRequired
+      value: "false"
+    - name: disableTls
+      value: "true"
+    - name: initialOffset
+      value: "oldest"
+    - name: maxMessageBytes
+      value: "1048576"
