@@ -265,7 +265,28 @@ class Orchestrator:
 
         if tool_name == "add_task":
             task_info = TaskInfo(id=result.task_id, title=result.title)
-            return confirmation_generator.execute("created", task=task_info)
+            msg = confirmation_generator.execute("created", task=task_info)
+            # Add details about priority, tags, due_date if set
+            extras = []
+            # Retrieve created task details from DB for rich confirmation
+            try:
+                from mcp_server.tools import _get_task_by_id
+                from database import get_session
+                with next(get_session()) as session:
+                    task = _get_task_by_id(session, self.user_id, result.task_id)
+                    if task.priority != "medium":
+                        extras.append(f"Priority: {task.priority}")
+                    if task.tags:
+                        extras.append(f"Tags: {', '.join(task.tags)}")
+                    if task.due_date:
+                        extras.append(f"Due: {task.due_date.strftime('%b %d, %Y')}")
+                    if task.recurring_pattern != "none":
+                        extras.append(f"Repeats: {task.recurring_pattern}")
+            except Exception:
+                pass
+            if extras:
+                msg += " (" + " | ".join(extras) + ")"
+            return msg
 
         elif tool_name == "list_tasks":
             task_infos = [
@@ -282,12 +303,26 @@ class Orchestrator:
                 tasks=task_infos,
                 filter_applied=result.filter_applied
             )
-            # Add task list
+            # Add task list with priority and tags
             if result.tasks:
                 lines = []
                 for t in result.tasks:
                     status = "[x]" if t.completed else "[ ]"
-                    lines.append(f"{status} {t.title}")
+                    line = f"{status} {t.title}"
+                    meta = []
+                    if t.priority != "medium":
+                        meta.append(t.priority.upper())
+                    if t.tags:
+                        meta.append(", ".join(t.tags))
+                    if t.is_overdue:
+                        meta.append("OVERDUE")
+                    elif t.due_date:
+                        meta.append(f"due {t.due_date.strftime('%b %d')}")
+                    if t.recurring_pattern != "none":
+                        meta.append(f"repeats {t.recurring_pattern}")
+                    if meta:
+                        line += f" [{' | '.join(meta)}]"
+                    lines.append(line)
                 msg += "\n\n" + "\n".join(lines)
             return msg
 
