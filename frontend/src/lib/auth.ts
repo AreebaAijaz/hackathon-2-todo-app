@@ -27,6 +27,13 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:30080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:30080",
+    // Minikube IP (common default)
+    "http://192.168.49.2:30080",
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
     process.env.NEXT_PUBLIC_APP_URL || "",
   ].filter(Boolean),

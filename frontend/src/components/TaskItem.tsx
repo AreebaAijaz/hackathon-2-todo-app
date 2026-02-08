@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Task } from "@/lib/types";
+import { Task, Priority, RecurringPattern } from "@/lib/types";
+import PriorityBadge from "./PriorityBadge";
+import TagPills from "./TagPills";
+import DueDateDisplay from "./DueDateDisplay";
 
 interface TaskItemProps {
   task: Task;
@@ -9,6 +12,7 @@ interface TaskItemProps {
   onDelete: (id: number) => Promise<void>;
   onUpdate: (id: number, title: string, description: string) => Promise<void>;
   onDeleteRequest: (task: Task) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 export default function TaskItem({
@@ -16,6 +20,7 @@ export default function TaskItem({
   onToggleComplete,
   onUpdate,
   onDeleteRequest,
+  onTagClick,
 }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -150,6 +155,8 @@ export default function TaskItem({
       className={`card p-5 group transition-all duration-200 ${
         task.completed
           ? "border-l-4 border-l-[var(--success)] bg-[var(--success-light)]/30"
+          : task.is_overdue
+          ? "border-l-4 border-l-[var(--error)] bg-red-50/30 dark:bg-red-900/10"
           : "border-l-4 border-l-[var(--info)] hover:border-l-[var(--gradient-start)]"
       }`}
     >
@@ -185,15 +192,18 @@ export default function TaskItem({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3
-            className={`font-medium text-[15px] leading-snug transition-all duration-200 ${
-              task.completed
-                ? "line-through text-[var(--muted-foreground)]"
-                : ""
-            }`}
-          >
-            {task.title}
-          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3
+              className={`font-medium text-[15px] leading-snug transition-all duration-200 ${
+                task.completed
+                  ? "line-through text-[var(--muted-foreground)]"
+                  : ""
+              }`}
+            >
+              {task.title}
+            </h3>
+            {task.priority !== "medium" && <PriorityBadge priority={task.priority} />}
+          </div>
           {task.description && (
             <p
               className={`text-sm mt-1.5 leading-relaxed ${
@@ -205,7 +215,12 @@ export default function TaskItem({
               {task.description}
             </p>
           )}
-          <div className="flex items-center gap-3 mt-3">
+          {task.tags.length > 0 && (
+            <div className="mt-2">
+              <TagPills tags={task.tags} onTagClick={onTagClick} />
+            </div>
+          )}
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
             <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
               <svg
                 className="w-3.5 h-3.5"
@@ -222,6 +237,15 @@ export default function TaskItem({
               </svg>
               {formatDate(task.created_at)}
             </span>
+            <DueDateDisplay due_date={task.due_date} completed={task.completed} />
+            {task.recurring_pattern !== "none" && (
+              <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1" title={`Repeats ${task.recurring_pattern}`}>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {task.recurring_pattern}
+              </span>
+            )}
             {task.completed && (
               <span className="badge badge-success">Completed</span>
             )}

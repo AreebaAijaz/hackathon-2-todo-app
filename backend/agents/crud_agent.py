@@ -31,7 +31,7 @@ class CRUDAgent(BaseAgent):
     available_tools = ["add_task", "update_task", "delete_task"]
 
     # Intent mappings
-    CREATE_INTENTS = ["add", "create", "new", "make"]
+    CREATE_INTENTS = ["add", "create", "new task", "make"]
     UPDATE_INTENTS = ["update", "edit", "change", "modify", "rename"]
     DELETE_INTENTS = ["delete", "remove", "cancel", "drop"]
 
@@ -93,10 +93,14 @@ class CRUDAgent(BaseAgent):
             )
 
     def _handle_create(self, **kwargs) -> AgentResult:
-        """Handle task creation."""
+        """Handle task creation with priority, tags, due date, and recurring support."""
         user_input = kwargs.get("user_input", "")
         title = kwargs.get("title")
         description = kwargs.get("description")
+        priority = kwargs.get("priority", "medium")
+        tags = kwargs.get("tags", [])
+        due_date = kwargs.get("due_date")
+        recurring_pattern = kwargs.get("recurring_pattern", "none")
 
         # Parse task from user input if title not provided
         if not title and user_input:
@@ -109,6 +113,10 @@ class CRUDAgent(BaseAgent):
                 )
             title = parsed.title
             description = parsed.description or description
+            priority = parsed.priority
+            tags = parsed.tags
+            due_date = parsed.due_date
+            recurring_pattern = parsed.recurring_pattern
 
         if not title:
             return AgentResult(
@@ -117,20 +125,37 @@ class CRUDAgent(BaseAgent):
                 error="No title provided"
             )
 
-        # Create the task
+        # Create the task with all fields
         result = add_task(AddTaskInput(
             user_id=self.user_id,
             title=title,
-            description=description or ""
+            description=description or "",
+            priority=priority,
+            tags=tags,
+            due_date=due_date,
+            recurring_pattern=recurring_pattern,
         ))
 
-        # Generate confirmation
+        # Generate confirmation with extras
         task_info = TaskInfo(
             id=result.task_id,
             title=result.title,
             description=description
         )
         message = confirmation_generator.execute("created", task=task_info)
+
+        # Add details about advanced fields
+        extras = []
+        if priority != "medium":
+            extras.append(f"Priority: {priority}")
+        if tags:
+            extras.append(f"Tags: {', '.join(tags)}")
+        if due_date:
+            extras.append(f"Due: {due_date[:10]}")
+        if recurring_pattern != "none":
+            extras.append(f"Repeats: {recurring_pattern}")
+        if extras:
+            message += " (" + " | ".join(extras) + ")"
 
         return AgentResult(
             success=True,

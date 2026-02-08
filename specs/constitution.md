@@ -46,6 +46,57 @@
 
 ---
 
+## Advanced Task Features (Phase V)
+
+### Priority System
+- Tasks have priority levels: `low`, `medium`, `high`, `urgent`
+- Default priority: `medium`
+- Priority affects sort order and display styling
+- UI shows color-coded priority badges (green/yellow/orange/red)
+- API accepts priority as enum string on create/update
+
+### Tag System
+- Tasks support multiple tags (e.g., "work", "personal", "urgent")
+- Tags are user-defined strings, stored as TEXT[] array column on the tasks table (GIN indexed)
+- Tags enable filtering and organization
+- Maximum 10 tags per task, max 30 characters per tag
+- Tags are per-user (not shared across users)
+
+### Due Dates
+- Tasks can have optional due dates (datetime with timezone)
+- Overdue tasks highlighted in UI with visual indicator
+- Due dates enable time-based sorting and filtering
+- Null due date = no deadline (valid state)
+- Foundation for Phase 5B reminder/notification system
+
+### Recurring Tasks
+- Tasks can repeat on schedules: `daily`, `weekly`, `monthly`, `none`
+- Default recurrence: `none`
+- Recurring pattern stored on task model
+- Completion marks current instance only; auto-creation of next instance deferred to Phase 5B
+- Next occurrence date calculated but not auto-generated
+
+### Search, Filter & Sort
+- **Search**: full-text search on task title and description
+- **Filter by**: status (pending/completed), priority, tags, due date range, overdue
+- **Sort by**: created date, due date, priority, title (alphabetical)
+- **Sort direction**: ascending or descending
+- Filters combinable (e.g., high priority + overdue + tag:"work")
+- API supports query parameters for all filter/sort options
+- Frontend provides filter UI controls and persistent filter state
+
+### Data Validation Rules
+
+| Field | Constraint |
+|-------|------------|
+| priority | Enum: low, medium, high, urgent |
+| tags | Array, max 10 items, each max 30 chars |
+| due_date | ISO 8601 datetime or null |
+| recurrence | Enum: none, daily, weekly, monthly |
+| search query | Max 200 characters |
+
+---
+
 ## Testing Standards
 
 - **Unit tests**: core business logic covered (>80% coverage)

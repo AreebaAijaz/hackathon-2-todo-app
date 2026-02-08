@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Priority, RecurringPattern, CreateTaskInput } from "@/lib/types";
 
 interface TaskFormProps {
-  onSubmit: (title: string, description: string) => Promise<void>;
+  onSubmit: (data: CreateTaskInput) => Promise<void>;
 }
 
 export default function TaskForm({ onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState("");
+  const [recurringPattern, setRecurringPattern] = useState<RecurringPattern>("none");
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -20,9 +26,21 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
     setLoading(true);
 
     try {
-      await onSubmit(title.trim(), description.trim());
+      await onSubmit({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        priority,
+        tags: tags.length > 0 ? tags : undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+        recurring_pattern: recurringPattern !== "none" ? recurringPattern : undefined,
+      });
       setTitle("");
       setDescription("");
+      setPriority("medium");
+      setTags([]);
+      setTagInput("");
+      setDueDate("");
+      setRecurringPattern("none");
       setIsExpanded(false);
     } finally {
       setLoading(false);
@@ -36,8 +54,32 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
     }
     if (e.key === "Escape") {
       setIsExpanded(false);
-      setDescription("");
     }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+      if (newTag && !tags.includes(newTag) && tags.length < 10) {
+        setTags([...tags, newTag]);
+      }
+      setTagInput("");
+    }
+    if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags(tags.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
+
+  const priorityColors: Record<Priority, string> = {
+    low: "text-gray-500",
+    medium: "text-yellow-600",
+    high: "text-orange-600",
+    urgent: "text-red-600",
   };
 
   return (
@@ -76,18 +118,87 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
 
           {/* Expanded form */}
           {isExpanded && (
-            <div className="mt-3 animate-fade-in">
+            <div className="mt-3 animate-fade-in space-y-3">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onKeyDown={handleKeyDown}
                 placeholder="Add a description (optional)..."
                 className="w-full bg-[var(--muted)] rounded-lg px-3 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20 placeholder:text-[var(--muted-foreground)]"
                 rows={2}
                 disabled={loading}
               />
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border)]">
+              {/* Advanced fields row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* Priority */}
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as Priority)}
+                  className={`bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20 ${priorityColors[priority]}`}
+                  disabled={loading}
+                >
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+
+                {/* Due Date */}
+                <input
+                  type="datetime-local"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20 text-[var(--foreground)]"
+                  disabled={loading}
+                />
+
+                {/* Recurring */}
+                <select
+                  value={recurringPattern}
+                  onChange={(e) => setRecurringPattern(e.target.value as RecurringPattern)}
+                  className="bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20"
+                  disabled={loading}
+                >
+                  <option value="none">No Repeat</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+
+                {/* Tag input */}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  placeholder="Add tags..."
+                  className="bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20 placeholder:text-[var(--muted-foreground)]"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Tag pills */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="hover:text-blue-900 dark:hover:text-blue-200"
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
                 <p className="text-xs text-[var(--muted-foreground)]">
                   Press <kbd className="px-1.5 py-0.5 bg-[var(--muted)] rounded text-[10px] font-mono">Enter</kbd> to save,{" "}
                   <kbd className="px-1.5 py-0.5 bg-[var(--muted)] rounded text-[10px] font-mono">Esc</kbd> to cancel

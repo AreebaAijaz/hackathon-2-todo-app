@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Task } from "@/lib/types";
+import { useState, useEffect, useCallback } from "react";
+import { Task, TaskFilters, CreateTaskInput } from "@/lib/types";
 import { api } from "@/lib/api";
 import TaskItem from "./TaskItem";
 import TaskForm from "./TaskForm";
@@ -13,14 +13,21 @@ export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
+  const [filters, setFilters] = useState<TaskFilters>({
+    status: "all",
+    sort_by: "created_at",
+    sort_dir: "desc",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const toast = useToast();
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async (currentFilters?: TaskFilters) => {
     try {
-      const data = await api.getTasks();
+      const f = currentFilters || filters;
+      const data = await api.getTasks(f);
       setTasks(data);
       setError("");
     } catch (err) {
@@ -28,15 +35,25 @@ export default function TaskList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [filters]);
 
-  const handleCreate = async (title: string, description: string) => {
+  // Debounced search
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const timeout = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: query || undefined }));
+    }, 300);
+    setSearchTimeout(timeout);
+  };
+
+  const handleCreate = async (data: CreateTaskInput) => {
     try {
-      const newTask = await api.createTask({ title, description });
+      const newTask = await api.createTask(data);
       setTasks((prev) => [newTask, ...prev]);
       toast.success("Task created successfully!");
     } catch (err) {
@@ -86,11 +103,22 @@ export default function TaskList() {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "pending") return !task.completed;
-    if (filter === "completed") return task.completed;
-    return true;
-  });
+  const handleTagClick = (tag: string) => {
+    setFilters((prev) => ({ ...prev, tags: tag }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ status: "all", sort_by: "created_at", sort_dir: "desc" });
+    setSearchQuery("");
+  };
+
+  const hasActiveFilters = !!(
+    filters.priority ||
+    filters.tags ||
+    filters.overdue ||
+    filters.search ||
+    filters.sort_by !== "created_at"
+  );
 
   if (loading) {
     return (
@@ -113,10 +141,7 @@ export default function TaskList() {
         </div>
         <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
         <p className="text-[var(--muted-foreground)] mb-4">{error}</p>
-        <button onClick={fetchTasks} className="btn btn-primary">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+        <button onClick={() => fetchTasks()} className="btn btn-primary">
           Try Again
         </button>
       </div>
@@ -131,30 +156,150 @@ export default function TaskList() {
       {/* Add Task Form */}
       <TaskForm onSubmit={handleCreate} />
 
-      {/* Filter tabs */}
-      <div className="flex items-center justify-between">
+      {/* Search bar */}
+      <div className="relative">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search tasks..."
+          className="w-full pl-10 pr-10 py-2.5 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--gradient-start)]/20 placeholder:text-[var(--muted-foreground)]"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => handleSearchChange("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Filter and Sort controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Status tabs */}
         <div className="flex items-center gap-1 p-1 bg-[var(--muted)] rounded-xl">
           {(["all", "pending", "completed"] as const).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => setFilters((prev) => ({ ...prev, status: f }))}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                filter === f
+                filters.status === f
                   ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
                   : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
-              {f === "all" && ` (${tasks.length})`}
-              {f === "pending" && ` (${tasks.filter((t) => !t.completed).length})`}
-              {f === "completed" && ` (${tasks.filter((t) => t.completed).length})`}
             </button>
           ))}
         </div>
+
+        {/* Sort controls */}
+        <select
+          value={filters.sort_by}
+          onChange={(e) =>
+            setFilters((prev) => ({
+              ...prev,
+              sort_by: e.target.value as TaskFilters["sort_by"],
+            }))
+          }
+          className="bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none"
+        >
+          <option value="created_at">Sort: Date Created</option>
+          <option value="priority">Sort: Priority</option>
+          <option value="due_date">Sort: Due Date</option>
+          <option value="title">Sort: Title</option>
+        </select>
+
+        <button
+          onClick={() =>
+            setFilters((prev) => ({
+              ...prev,
+              sort_dir: prev.sort_dir === "desc" ? "asc" : "desc",
+            }))
+          }
+          className="p-2 bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] transition-colors"
+          title={filters.sort_dir === "desc" ? "Descending" : "Ascending"}
+        >
+          <svg className={`w-4 h-4 transition-transform ${filters.sort_dir === "asc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Overdue toggle */}
+        <button
+          onClick={() =>
+            setFilters((prev) => ({
+              ...prev,
+              overdue: prev.overdue ? undefined : true,
+              status: prev.overdue ? prev.status : "pending",
+            }))
+          }
+          className={`px-3 py-2 text-sm rounded-lg transition-all ${
+            filters.overdue
+              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          }`}
+        >
+          Overdue
+        </button>
+
+        {/* Priority filter */}
+        <select
+          value={filters.priority || ""}
+          onChange={(e) =>
+            setFilters((prev) => ({
+              ...prev,
+              priority: e.target.value || undefined,
+            }))
+          }
+          className="bg-[var(--muted)] rounded-lg px-3 py-2 text-sm outline-none"
+        >
+          <option value="">All Priorities</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        {/* Active tag filter indicator */}
+        {filters.tags && (
+          <span className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            Tag: {filters.tags}
+            <button
+              onClick={() => setFilters((prev) => ({ ...prev, tags: undefined }))}
+              className="hover:text-blue-900 dark:hover:text-blue-200 ml-1"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        )}
+
+        {/* Clear filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={handleClearFilters}
+            className="px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Task list or empty state */}
-      {filteredTasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <div className="card p-12 text-center animate-fade-in">
           <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-[var(--gradient-start)]/10 to-[var(--gradient-mid)]/10 flex items-center justify-center">
             <svg
@@ -172,28 +317,32 @@ export default function TaskList() {
             </svg>
           </div>
           <h3 className="text-xl font-semibold mb-2">
-            {filter === "all"
+            {hasActiveFilters || filters.search
+              ? "No tasks match your filters"
+              : filters.status === "all"
               ? "No tasks yet"
-              : filter === "pending"
+              : filters.status === "pending"
               ? "No pending tasks"
               : "No completed tasks"}
           </h3>
           <p className="text-[var(--muted-foreground)] mb-6 max-w-sm mx-auto">
-            {filter === "all"
+            {hasActiveFilters || filters.search
+              ? "Try adjusting your filters or search query."
+              : filters.status === "all"
               ? "Start by adding your first task. Stay organized and productive!"
-              : filter === "pending"
+              : filters.status === "pending"
               ? "Great job! You've completed all your tasks."
               : "Complete some tasks to see them here."}
           </p>
-          {filter !== "all" && (
-            <button onClick={() => setFilter("all")} className="btn btn-secondary">
-              View all tasks
+          {(hasActiveFilters || filters.status !== "all") && (
+            <button onClick={handleClearFilters} className="btn btn-secondary">
+              Clear filters
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredTasks.map((task, index) => (
+          {tasks.map((task, index) => (
             <div key={task.id} className="stagger-item" style={{ animationDelay: `${index * 0.05}s` }}>
               <TaskItem
                 task={task}
@@ -201,6 +350,7 @@ export default function TaskList() {
                 onDelete={async () => {}}
                 onUpdate={handleUpdate}
                 onDeleteRequest={handleDeleteRequest}
+                onTagClick={handleTagClick}
               />
             </div>
           ))}
