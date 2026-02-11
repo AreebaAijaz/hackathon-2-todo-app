@@ -19,7 +19,16 @@ spec:
         app.kubernetes.io/name: {{ .Chart.Name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: backend
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "backend"
+        dapr.io/app-port: "8000"
+        dapr.io/log-level: "info"
     spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.backend.name }}
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
@@ -49,6 +58,17 @@ spec:
                 configMapKeyRef:
                   name: {{ .Release.Name }}-config
                   key: CORS_ORIGINS
+            - name: DAPR_HTTP_PORT
+              value: "3500"
+            - name: INTERNAL_SERVICE_USER_ID
+              {{- if .Values.secrets.internalServiceUserId }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: INTERNAL_SERVICE_USER_ID
+              {{- else }}
+              value: "{{ .Values.backend.env.INTERNAL_SERVICE_USER_ID | default "" }}"
+              {{- end }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           livenessProbe:

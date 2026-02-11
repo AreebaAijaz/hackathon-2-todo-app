@@ -4,6 +4,9 @@ import {
   Task,
   CreateTaskInput,
   UpdateTaskInput,
+  TaskFilters,
+  TagsResponse,
+  BulkUpdateRequest,
   ChatRequest,
   ChatResponse,
   Conversation,
@@ -52,8 +55,32 @@ class ApiClient {
   }
 
   // Task endpoints
-  async getTasks(): Promise<Task[]> {
-    return this.request<Task[]>("/api/tasks");
+  async getTasks(filters?: TaskFilters): Promise<Task[]> {
+    const params = new URLSearchParams();
+    if (filters) {
+      if (filters.status && filters.status !== "all") params.set("status", filters.status);
+      if (filters.priority) params.set("priority", filters.priority);
+      if (filters.tags) params.set("tags", filters.tags);
+      if (filters.due_before) params.set("due_before", filters.due_before);
+      if (filters.due_after) params.set("due_after", filters.due_after);
+      if (filters.overdue) params.set("overdue", "true");
+      if (filters.search) params.set("search", filters.search);
+      if (filters.sort_by) params.set("sort_by", filters.sort_by);
+      if (filters.sort_dir) params.set("sort_dir", filters.sort_dir);
+    }
+    const qs = params.toString();
+    return this.request<Task[]>(`/api/tasks${qs ? `?${qs}` : ""}`);
+  }
+
+  async getTags(): Promise<TagsResponse> {
+    return this.request<TagsResponse>("/api/tasks/tags");
+  }
+
+  async bulkUpdate(data: BulkUpdateRequest): Promise<{ updated_count: number; task_ids: number[] }> {
+    return this.request("/api/tasks/bulk", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   async createTask(data: CreateTaskInput): Promise<Task> {

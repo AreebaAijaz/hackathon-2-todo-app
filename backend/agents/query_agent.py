@@ -28,7 +28,8 @@ class QueryAgent(BaseAgent):
     QUERY_INTENTS = [
         "list", "show", "display", "get", "view", "see",
         "what", "how many", "count", "tasks", "todos",
-        "pending", "completed", "done", "remaining"
+        "pending", "completed", "done", "remaining",
+        "overdue", "urgent", "find", "search",
     ]
 
     def can_handle(self, intent: str, **kwargs) -> bool:
@@ -52,17 +53,22 @@ class QueryAgent(BaseAgent):
             user_input = kwargs.get("user_input", intent)
             explicit_status = kwargs.get("status")
 
-            # Determine filter from user input or explicit status
+            # Determine filters from user input or explicit status
             if explicit_status:
-                status = explicit_status
+                filter_params = filter_mapper.execute(user_input)
+                filter_params.status = explicit_status
             else:
                 filter_params = filter_mapper.execute(user_input)
-                status = filter_params.status
 
-            # Execute the query
+            # Execute the query with all filter params
             result = list_tasks(ListTasksInput(
                 user_id=self.user_id,
-                status=status
+                status=filter_params.status,
+                priority=filter_params.priority,
+                tags=filter_params.tags,
+                overdue=filter_params.overdue,
+                search=filter_params.search,
+                sort_by=filter_params.sort_by,
             ))
 
             # Convert to TaskInfo objects for confirmation
@@ -116,7 +122,7 @@ class QueryAgent(BaseAgent):
             )
 
     def _format_task_list(self, tasks: List, filter_applied: str) -> str:
-        """Format tasks into a readable list."""
+        """Format tasks into a readable list with priority, tags, and overdue info."""
         if not tasks:
             return ""
 
@@ -124,8 +130,19 @@ class QueryAgent(BaseAgent):
         for task in tasks:
             status_icon = "[x]" if task.completed else "[ ]"
             line = f"{status_icon} {task.title}"
-            if task.description:
-                line += f" - {task.description}"
+            meta = []
+            if task.priority != "medium":
+                meta.append(task.priority.upper())
+            if task.tags:
+                meta.append(", ".join(task.tags))
+            if task.is_overdue:
+                meta.append("OVERDUE")
+            elif task.due_date:
+                meta.append(f"due {task.due_date.strftime('%b %d')}")
+            if task.recurring_pattern != "none":
+                meta.append(f"repeats {task.recurring_pattern}")
+            if meta:
+                line += f" [{' | '.join(meta)}]"
             lines.append(line)
 
         return "\n".join(lines)

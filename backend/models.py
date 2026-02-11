@@ -5,6 +5,8 @@ from typing import Optional, List
 import json
 
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, Text, text
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 
 
 # ============== Phase II Models ==============
@@ -20,6 +22,11 @@ class Task(SQLModel, table=True):
         completed: Whether task is complete.
         created_at: Task creation timestamp.
         updated_at: Last update timestamp.
+        priority: Task priority level (low/medium/high/urgent).
+        tags: List of user-defined tag strings.
+        due_date: Optional due date with timezone.
+        recurring_pattern: Recurring schedule (none/daily/weekly/monthly).
+        search_vector: PostgreSQL tsvector for full-text search.
     """
 
     __tablename__ = "tasks"
@@ -31,6 +38,22 @@ class Task(SQLModel, table=True):
     completed: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Phase 5A fields
+    priority: str = Field(default="medium", index=True)
+    tags: List[str] = Field(
+        default_factory=list,
+        sa_column=Column(ARRAY(Text), server_default=text("'{}'::text[]"), nullable=False),
+    )
+    due_date: Optional[datetime] = Field(default=None, index=True)
+    recurring_pattern: str = Field(default="none")
+    search_vector: Optional[str] = Field(
+        default=None,
+        sa_column=Column(TSVECTOR, nullable=True),
+    )
+
+    # Phase 5B fields
+    parent_task_id: Optional[int] = Field(default=None, foreign_key="tasks.id")
 
 
 # ============== Phase III Models ==============

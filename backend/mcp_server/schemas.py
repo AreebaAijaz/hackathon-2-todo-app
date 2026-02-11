@@ -14,6 +14,11 @@ class TaskItem(BaseModel):
     description: str = ""
     completed: bool = False
     created_at: datetime
+    priority: str = "medium"
+    tags: List[str] = []
+    due_date: Optional[datetime] = None
+    recurring_pattern: str = "none"
+    is_overdue: bool = False
 
 
 # ============== add_task ==============
@@ -23,6 +28,10 @@ class AddTaskInput(BaseModel):
     user_id: str = Field(..., description="The user ID who owns the task")
     title: str = Field(..., description="The task title", min_length=1, max_length=200)
     description: str = Field(default="", description="Optional task description", max_length=500)
+    priority: str = Field(default="medium", description="Priority level: low, medium, high, urgent")
+    tags: List[str] = Field(default_factory=list, description="List of tags for the task")
+    due_date: Optional[str] = Field(default=None, description="Due date in ISO 8601 format")
+    recurring_pattern: str = Field(default="none", description="Recurring pattern: none, daily, weekly, monthly")
 
 
 class AddTaskOutput(BaseModel):
@@ -41,6 +50,11 @@ class ListTasksInput(BaseModel):
         default="all",
         description="Filter tasks by status: 'all', 'pending', or 'completed'"
     )
+    priority: Optional[str] = Field(default=None, description="Filter by priority (comma-separated): low, medium, high, urgent")
+    tags: Optional[str] = Field(default=None, description="Filter by tags (comma-separated, AND logic)")
+    overdue: Optional[bool] = Field(default=None, description="If true, only show overdue tasks")
+    search: Optional[str] = Field(default=None, description="Full-text search query")
+    sort_by: str = Field(default="created_at", description="Sort field: created_at, due_date, priority, title")
 
 
 class ListTasksOutput(BaseModel):
@@ -89,6 +103,10 @@ class UpdateTaskInput(BaseModel):
     title: Optional[str] = Field(default=None, description="New title (optional)", max_length=200)
     description: Optional[str] = Field(default=None, description="New description (optional)", max_length=500)
     completed: Optional[bool] = Field(default=None, description="New completed status (optional)")
+    priority: Optional[str] = Field(default=None, description="New priority: low, medium, high, urgent")
+    tags: Optional[List[str]] = Field(default=None, description="New tags list (replaces existing)")
+    due_date: Optional[str] = Field(default=None, description="New due date in ISO 8601 format, or empty string to clear")
+    recurring_pattern: Optional[str] = Field(default=None, description="New recurring pattern: none, daily, weekly, monthly")
 
 
 class UpdateTaskOutput(BaseModel):

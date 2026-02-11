@@ -1,0 +1,88 @@
+# OKE (Oracle Cloud) values overlay for modern-taskflow Helm chart
+# Usage: helm upgrade --install taskflow ./helm-chart -f helm-chart/values-oke.yaml --set ...
+
+# Image pull secrets for OCIR
+global:
+  imagePullSecrets:
+    - name: ocir-secret
+
+# Frontend configuration (OKE)
+frontend:
+  image:
+    repository: bom.ocir.io/bmchaanonuwz/taskflow/frontend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 3000
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 25m
+      memory: 64Mi
+  env:
+    NEXT_PUBLIC_API_URL: "http://80.225.232.189:8000"
+    NEXT_PUBLIC_APP_URL: "http://80.225.211.34:3000"
+
+# Backend configuration (OKE)
+backend:
+  image:
+    repository: bom.ocir.io/bmchaanonuwz/taskflow/backend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 8000
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 96Mi
+  env:
+    CORS_ORIGINS: "http://80.225.211.34:3000"
+
+# Notification service configuration (OKE)
+notificationService:
+  image:
+    repository: bom.ocir.io/bmchaanonuwz/taskflow/notification-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    limits:
+      cpu: 125m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
+# Recurring task service configuration (OKE)
+recurringService:
+  image:
+    repository: bom.ocir.io/bmchaanonuwz/taskflow/recurring-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    limits:
+      cpu: 125m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
+# Audit service configuration (OKE)
+auditService:
+  image:
+    repository: bom.ocir.io/bmchaanonuwz/taskflow/audit-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    limits:
+      cpu: 125m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi

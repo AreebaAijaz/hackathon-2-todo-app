@@ -2,6 +2,9 @@
  * Shared TypeScript types for the Todo application.
  */
 
+export type Priority = "low" | "medium" | "high" | "urgent";
+export type RecurringPattern = "none" | "daily" | "weekly" | "monthly";
+
 export interface Task {
   id: number;
   user_id: string;
@@ -10,16 +13,57 @@ export interface Task {
   completed: boolean;
   created_at: string;
   updated_at: string;
+  priority: Priority;
+  tags: string[];
+  due_date: string | null;
+  recurring_pattern: RecurringPattern;
+  is_overdue: boolean;
 }
 
 export interface CreateTaskInput {
   title: string;
   description?: string;
+  priority?: Priority;
+  tags?: string[];
+  due_date?: string | null;
+  recurring_pattern?: RecurringPattern;
 }
 
 export interface UpdateTaskInput {
   title?: string;
   description?: string;
+  priority?: Priority;
+  tags?: string[];
+  due_date?: string | null;
+  recurring_pattern?: RecurringPattern;
+}
+
+export interface TaskFilters {
+  status?: "all" | "pending" | "completed";
+  priority?: string;
+  tags?: string;
+  due_before?: string;
+  due_after?: string;
+  overdue?: boolean;
+  search?: string;
+  sort_by?: "created_at" | "due_date" | "priority" | "title";
+  sort_dir?: "asc" | "desc";
+}
+
+export interface BulkUpdateRequest {
+  task_ids: number[];
+  operations: {
+    priority?: Priority;
+    add_tags?: string[];
+    remove_tags?: string[];
+    due_date?: string | null;
+    recurring_pattern?: RecurringPattern;
+  };
+}
+
+export interface TagsResponse {
+  tags: string[];
+  count: number;
 }
 
 export interface User {

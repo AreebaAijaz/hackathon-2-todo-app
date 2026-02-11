@@ -9,4 +9,8 @@ data:
   NODE_ENV: {{ .Values.config.nodeEnv | quote }}
   PYTHON_ENV: {{ .Values.config.pythonEnv | quote }}
   CORS_ORIGINS: "http://{{ .Release.Name }}-{{ .Values.frontend.name }}:{{ .Values.frontend.service.port }},{{ .Values.backend.env.CORS_ORIGINS }}"
+  {{- if .Values.frontend.env.NEXT_PUBLIC_API_URL }}
+  NEXT_PUBLIC_API_URL: {{ .Values.frontend.env.NEXT_PUBLIC_API_URL | quote }}
+  {{- else }}
   NEXT_PUBLIC_API_URL: "http://{{ .Release.Name }}-{{ .Values.backend.name }}:{{ .Values.backend.service.port }}"
+  {{- end }}
