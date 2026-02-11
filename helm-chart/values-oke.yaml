@@ -24,6 +24,7 @@ frontend:
       memory: 64Mi
   env:
     NEXT_PUBLIC_API_URL: "http://80.225.232.189:8000"
+    NEXT_PUBLIC_APP_URL: "http://80.225.211.34:3000"
 
 # Backend configuration (OKE)
 backend:

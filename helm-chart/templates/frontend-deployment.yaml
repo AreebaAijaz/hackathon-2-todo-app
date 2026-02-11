@@ -53,6 +53,10 @@ spec:
                 configMapKeyRef:
                   name: {{ .Release.Name }}-config
                   key: NODE_ENV
+            {{- if .Values.frontend.env.NEXT_PUBLIC_APP_URL }}
+            - name: NEXT_PUBLIC_APP_URL
+              value: {{ .Values.frontend.env.NEXT_PUBLIC_APP_URL | quote }}
+            {{- end }}
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
           livenessProbe:
