@@ -212,6 +212,11 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.13 (matching existing backend) + FastAPI, uvicorn, httpx (for Dapr HTTP API), SQLModel (backend only) (002-event-driven-kafka-dapr)
 - PostgreSQL (Neon - existing), Redpanda (Kafka-compatible message broker) (002-event-driven-kafka-dapr)
+- Oracle Cloud: OKE (K8s v1.30), OCIR (Container Registry), Load Balancer (003-oke-cloud-deploy)
+- CI/CD: GitHub Actions + OCI CLI + oracle-actions (003-oke-cloud-deploy)
+- Kafka: Redpanda Cloud Serverless with SASL_SSL (003-oke-cloud-deploy)
+- Helm 3, Dapr, YAML (Helm/K8s manifests), Dockerfile (multi-stage) (003-oke-cloud-deploy)
 
 ## Recent Changes
+- 003-oke-cloud-deploy: Added Oracle Cloud (OKE, OCIR, Load Balancer), GitHub Actions CI/CD, Redpanda Cloud Serverless
 - 002-event-driven-kafka-dapr: Added Python 3.13 (matching existing backend) + FastAPI, uvicorn, httpx (for Dapr HTTP API), SQLModel (backend only)

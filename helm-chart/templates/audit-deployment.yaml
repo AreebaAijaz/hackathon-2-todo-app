@@ -25,6 +25,10 @@ spec:
         dapr.io/app-port: "8003"
         dapr.io/log-level: "info"
     spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.auditService.name }}
           image: "{{ .Values.auditService.image.repository }}:{{ .Values.auditService.image.tag }}"

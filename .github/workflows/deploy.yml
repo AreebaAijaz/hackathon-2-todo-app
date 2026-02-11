@@ -1,0 +1,98 @@
+name: Deploy to Oracle Cloud (OKE)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  OCIR_REGISTRY: bom.ocir.io
+  IMAGE_PREFIX: bom.ocir.io/${{ secrets.OCIR_NAMESPACE }}/taskflow
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+      OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+      OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+      OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+      OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to OCIR
+        uses: oracle-actions/login-ocir@v1.2
+        with:
+          auth_token: ${{ secrets.OCIR_TOKEN }}
+
+      - name: Build and push frontend image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }} \
+            --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} \
+            -t ${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }} -t ${{ env.IMAGE_PREFIX }}/frontend:latest ./frontend/
+          docker push ${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}
+          docker push ${{ env.IMAGE_PREFIX }}/frontend:latest
+
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ env.IMAGE_PREFIX }}/backend:${{ github.sha }} -t ${{ env.IMAGE_PREFIX }}/backend:latest ./backend/
+          docker push ${{ env.IMAGE_PREFIX }}/backend:${{ github.sha }}
+          docker push ${{ env.IMAGE_PREFIX }}/backend:latest
+
+      - name: Build and push notification-service image
+        run: |
+          docker build -t ${{ env.IMAGE_PREFIX }}/notification-service:${{ github.sha }} -t ${{ env.IMAGE_PREFIX }}/notification-service:latest ./services/notification-service/
+          docker push ${{ env.IMAGE_PREFIX }}/notification-service:${{ github.sha }}
+          docker push ${{ env.IMAGE_PREFIX }}/notification-service:latest
+
+      - name: Build and push recurring-service image
+        run: |
+          docker build -t ${{ env.IMAGE_PREFIX }}/recurring-service:${{ github.sha }} -t ${{ env.IMAGE_PREFIX }}/recurring-service:latest ./services/recurring-service/
+          docker push ${{ env.IMAGE_PREFIX }}/recurring-service:${{ github.sha }}
+          docker push ${{ env.IMAGE_PREFIX }}/recurring-service:latest
+
+      - name: Build and push audit-service image
+        run: |
+          docker build -t ${{ env.IMAGE_PREFIX }}/audit-service:${{ github.sha }} -t ${{ env.IMAGE_PREFIX }}/audit-service:latest ./services/audit-service/
+          docker push ${{ env.IMAGE_PREFIX }}/audit-service:${{ github.sha }}
+          docker push ${{ env.IMAGE_PREFIX }}/audit-service:latest
+
+      - name: Configure OCI CLI
+        uses: oracle-actions/run-oci-cli-command@v1.3
+        with:
+          command: 'ce cluster create-kubeconfig --cluster-id ${{ secrets.OKE_CLUSTER_OCID }} --file $HOME/.kube/config --region ${{ secrets.OCI_CLI_REGION }} --token-version 2.0.0'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Deploy to OKE with Helm
+        run: |
+          helm upgrade --install taskflow ./helm-chart \
+            -f helm-chart/values-oke.yaml \
+            --set frontend.image.tag=${{ github.sha }} \
+            --set backend.image.tag=${{ github.sha }} \
+            --set notificationService.image.tag=${{ github.sha }} \
+            --set recurringService.image.tag=${{ github.sha }} \
+            --set auditService.image.tag=${{ github.sha }} \
+            --set secrets.databaseUrl='${{ secrets.DATABASE_URL }}' \
+            --set secrets.betterAuthSecret='${{ secrets.BETTER_AUTH_SECRET }}' \
+            --set secrets.openaiApiKey='${{ secrets.OPENAI_API_KEY }}' \
+            --set secrets.internalServiceUserId='${{ secrets.INTERNAL_SERVICE_USER_ID }}' \
+            --set backend.env.CORS_ORIGINS='${{ secrets.CORS_ORIGINS }}'
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/taskflow-frontend --timeout=300s
+          kubectl rollout status deployment/taskflow-backend --timeout=300s
+          kubectl rollout status deployment/taskflow-notification-service --timeout=300s
+          kubectl rollout status deployment/taskflow-recurring-service --timeout=300s
+          kubectl rollout status deployment/taskflow-audit-service --timeout=300s
+          echo "All deployments rolled out successfully"
+          kubectl get pods
+          kubectl get svc
